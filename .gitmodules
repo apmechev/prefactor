@@ -1,0 +1,3 @@
+[submodule "pipeline.cfg"]
+	path = pipeline.cfg
+	url = https://github.com/apmechev/prefactor
