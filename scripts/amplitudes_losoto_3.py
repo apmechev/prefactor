@@ -250,6 +250,11 @@ amps_array = np.zeros( (nants,ntimes,len(freqs_new),2), dtype='float')
 minscale = np.zeros( nants )
 maxscale = np.zeros( nants )
 
+if len(freqs_new) < 20:
+    print "Frequency span is less than 20 subbands! The filtering will not work!"
+    print "Please run the calibrator pipeline on the full calibrator bandwidth." 
+    raise ValueError("Frequency span is less than 20 subbands! Amplitude filtering will not work!")
+
 # remove the badd subbands given by the user
 print "Have",max(SBgrid),"subbands."
 for bad in bad_sblist:
@@ -354,6 +359,8 @@ if make_matrixplot:
   
 
 # Smooth the data further
+ampsoutfile = open(calsource + '_amplitude_array.txt','w')
+ampsoutfile.write('# Antenna name, Antenna ID, subband, XXamp, YYamp\n')
 for antenna_id in range(0,len(amptab.ant[:])):
     amp_xx = np.copy(amps_array_flagged[antenna_id,:,:,0])
     amp_yy = np.copy(amps_array_flagged[antenna_id,:,:,1])
@@ -382,10 +389,13 @@ for antenna_id in range(0,len(amptab.ant[:])):
 
 
 
+    for i in range(0,len(freqs_new)):
+        ampsoutfile.write('%s %s %s %s %s\n'%(amptab.ant[antenna_id], antenna_id,i, np.median(amp_xx[:,i], axis=0), np.median(amp_yy[:,i], axis=0)))
+
     for time in range(0,len(amptab.time[:])):
         amps_array[antenna_id,time,:,0] = np.copy(savitzky_golay(amp_xx[time,:], 17, 2))
         amps_array[antenna_id,time,:,1] = np.copy(savitzky_golay(amp_yy[time,:], 17, 2))
-
+    
     if show_plot:
         subplots_adjust(wspace = 0.6)
         matplotlib.pyplot.subplot(121)
