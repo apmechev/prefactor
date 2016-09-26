@@ -26,8 +26,23 @@ def _calc_edge_chans(inmap, numch, edgeFactor=32):
             flaglist.extend(range(i*numch,i*numch+numch/edgeFactor))
             flaglist.extend(range((i+1)*numch-numch/edgeFactor,(i+1)*numch))
         outmap.append(DataProduct(group.host,str(flaglist).replace(' ',''),group.skip))
-        print str(flaglist).replace(' ','')
+        print '_calc_edge_chans: flaglist:', str(flaglist).replace(' ','')
     return outmap
+
+def input2bool(invar):
+    if isinstance(invar, bool):
+        return invar
+    elif isinstance(invar, str):
+        if invar.upper() == 'TRUE' or invar == '1':
+            return True
+        elif invar.upper() == 'FALSE' or invar == '0':
+            return False
+        else:
+            raise ValueError('input2bool: Cannot convert string "'+invar+'" to boolean!')
+    elif isinstance(invar, int) or isinstance(invar, float):
+        return bool(invar)
+    else:
+        raise TypeError('input2bool: Unsupported data type:'+str(type(invar)))
 
 def main(ms_input, filename=None, mapfile_dir=None, numSB=-1, hosts=None, NDPPPfill=True, target_path=None, stepname=None,
          mergeLastGroup=False, truncateLastSBs=True):
@@ -76,6 +91,11 @@ def main(ms_input, filename=None, mapfile_dir=None, numSB=-1, hosts=None, NDPPPf
         Dict with the name of the generated mapfile
 
     """
+
+    NDPPPfill = input2bool(NDPPPfill)
+    mergeLastGroup = input2bool(mergeLastGroup)
+    truncateLastSBs = input2bool(truncateLastSBs)
+
     if not filename or not mapfile_dir:
         raise ValueError('sort_times_into_freqGroups: filename and mapfile_dir are needed!')
     if mergeLastGroup and truncateLastSBs:
@@ -105,21 +125,23 @@ def main(ms_input, filename=None, mapfile_dir=None, numSB=-1, hosts=None, NDPPPf
     if not hosts:
         hosts = ['localhost']
     numhosts = len(hosts)
-    print "sort_times_into_freqGroups: Working on",len(ms_list),"files"
+    print "sort_times_into_freqGroups: Working on",len(ms_list),"files (including flagged files)."
 
     time_groups = {}
     # sort by time
     for i, ms in enumerate(ms_list):
-        # use the slower but more reliable way:
-        obstable = pt.table(ms, ack=False)
-        timestamp = int(round(np.min(obstable.getcol('TIME'))))
-        #obstable = pt.table(ms+'::OBSERVATION', ack=False)
-        #timestamp = int(round(obstable.col('TIME_RANGE')[0][0]))
-        obstable.close()
-        if timestamp in time_groups:
-            time_groups[timestamp]['files'].append(ms)
-        else:
-            time_groups[timestamp] = {'files': [ ms ], 'basename' : os.path.splitext(ms)[0] }
+        # work only on files selected by a previous step
+        if ms.lower() != 'none':
+            # use the slower but more reliable way:
+            obstable = pt.table(ms, ack=False)
+            timestamp = int(round(np.min(obstable.getcol('TIME'))))
+            #obstable = pt.table(ms+'::OBSERVATION', ack=False)
+            #timestamp = int(round(obstable.col('TIME_RANGE')[0][0]))
+            obstable.close()
+            if timestamp in time_groups:
+                time_groups[timestamp]['files'].append(ms)
+            else:
+                time_groups[timestamp] = {'files': [ ms ], 'basename' : os.path.splitext(ms)[0] }
     print "sort_times_into_freqGroups: found",len(time_groups),"time-groups"
 
     # sort time-groups by frequency
@@ -160,6 +182,7 @@ def main(ms_input, filename=None, mapfile_dir=None, numSB=-1, hosts=None, NDPPPf
     maxfreq = maxfreq+freq_width/2.
     minfreq = minfreq-freq_width/2.
     numFiles = round((maxfreq-minfreq)/freq_width)
+    numSB = int(numSB)
     if numSB > 0:
         if truncateLastSBs:
             ngroups = int(np.floor(numFiles/numSB))
@@ -168,7 +191,10 @@ def main(ms_input, filename=None, mapfile_dir=None, numSB=-1, hosts=None, NDPPPf
     else:
         ngroups = 1
         numSB = int(numFiles)
+    if ngroups < 1 :
+        raise ValueError('sort_times_into_freqGroups: Not enough input subbands to create at least one full (frequency-)group!')
     hostID = 0
+    print "sort_times_into_freqGroups: Will create",ngroups,"group(s) with",numSB,"file(s) each."
     for time in timestamps:
         (freq,fname) = time_groups[time]['freq_names'].pop(0)
         for fgroup in range(ngroups):
@@ -179,6 +205,7 @@ def main(ms_input, filename=None, mapfile_dir=None, numSB=-1, hosts=None, NDPPPf
                     if NDPPPfill:
                         files.append('dummy.ms')
                 else:
+                    assert freq!=1e12
                     files.append(fname)
                     if len(time_groups[time]['freq_names'])>0:
                         (freq,fname) = time_groups[time]['freq_names'].pop(0)
@@ -186,20 +213,20 @@ def main(ms_input, filename=None, mapfile_dir=None, numSB=-1, hosts=None, NDPPPf
                         (freq,fname) = (1e12,'This_shouldn\'t_show_up')
                     skip_this = False
             filemap.append(MultiDataProduct(hosts[hostID%numhosts], files, skip_this))
-            groupname = time_groups[time]['basename']+'_%Xt_%dg.ms'%(time,fgroup)
+            freqID = int(((numSB/2.+fgroup*numSB+1)*freq_width+minfreq)/1e6)
+            groupname = time_groups[time]['basename']+'_%Xt_%dMHz.ms'%(time,freqID)
             if type(stepname) is str:
                 groupname += stepname
             if type(target_path) is str:
                 groupname = os.path.join(target_path,os.path.basename(groupname))
             groupmap.append(DataProduct(hosts[hostID%numhosts],groupname, skip_this))
-        assert freq==1e12
 
     filemapname = os.path.join(mapfile_dir, filename)
     filemap.save(filemapname)
     groupmapname = os.path.join(mapfile_dir, filename+'_groups')
     groupmap.save(groupmapname)
     # genertate map with edge-channels to flag
-    flagmap = _calc_edge_chans(filemapname, nchans)
+    flagmap = _calc_edge_chans(filemap, nchans)
     flagmapname = os.path.join(mapfile_dir, filename+'_flags')
     flagmap.save(flagmapname)
     result = {'mapfile': filemapname, 'groupmapfile': groupmapname, 'flagmapfile': flagmapname}
