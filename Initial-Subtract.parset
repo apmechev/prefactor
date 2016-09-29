@@ -29,7 +29,7 @@
 # The Pre-Facet-Cal pipelines will supply exactly this kind of data.
 
 ##### parameters you will need to adjust.
-! data_input_path         = /data/scratch/username/PathToYourTargetData/
+! data_input_path         = PREFACTOR_SCRATCH_DIR/prefactor/results
 ! data_input_pattern      = L*.pre-cal.ms
 # name of the direction independent parmDBs inside the measurement sets
 # needs to include the leading "/" to indicate that the parmDB is a subdirectory of the MS
@@ -60,18 +60,22 @@
 ! max_cpus_per_img          =  20
 ! max_dppp_per_node         =  6
 ! max_dppp_threads          =  8
+
+! local_scratch_dir         =  PREFACTOR_SCRATCH_DIR
 # set this to True if you want the pipeline run to continue if single bands fail
 ! error_tolerance           =  False
 
 ##### pathes to the scripts etc.
-! wsclean_executable          = /homea/htb00/htb003/local_jureca/bin/wsclean
-! do_magic_script             = /homea/htb00/htb001/prefactor/scripts/InitSubtract_sort_and_compute.py
-! merge_skymodels_script      = /homea/htb00/htb001/prefactor/scripts/merge_skymodels.py
-! make_clean_mask_script      = /homea/htb00/htb001/prefactor/scripts/make_clean_mask.py
-! fits_to_casa_script         = /homea/htb00/htb001/prefactor/scripts/convert_fits_image_to_casa.py
-! plot_subtract_images_script = /homea/htb00/htb001/prefactor/scripts/plot_subtract_images.py
-! casapy2bbs                  = /homea/htb00/htb003/lofar_jureca_2-15/bin/casapy2bbs.py
-! makesourcedb                = /homea/htb00/htb003/lofar_jureca_2-15/bin/makesourcedb
+
+! wsclean_executable          = /cvmfs/softdrive.nl/apmechev/wsclean/wsclean
+! do_magic_script             = PREFACTOR_SCRATCH_DIR/prefactor/bin/InitSubtract_sort_and_compute.py
+! merge_skymodels_script      = PREFACTOR_SCRATCH_DIR/prefactor/bin/merge_skymodels.py
+! make_clean_mask_script      = PREFACTOR_SCRATCH_DIR/prefactor/bin/make_clean_mask.py
+! fits_to_casa_script         = PREFACTOR_SCRATCH_DIR/prefactor/bin/convert_fits_image_to_casa.py
+! realimag_script             = PREFACTOR_SCRATCH_DIR/prefactor/bin/parmdb_gain_to_real-imag.py
+! plot_subtract_images_script = PREFACTOR_SCRATCH_DIR/prefactor/bin/plot_subtract_images.py
+! casapy2bbs                  = /cvmfs/softdrive.nl/wjvriend/lofar_stack/2.16/lofar/release/bin/casapy2bbs.py
+! makesourcedb                = /cvmfs/softdrive.nl/wjvriend/lofar_stack/2.16/lofar/release/bin/makesourcedb
 
 # the Steps in this pipeline
 pipeline.steps = [create_ms_map, combine_mapfile, do_magic, do_magic_maps, create_parmdb_map, wsclean_high1, mask_high, mk_inspect_dir, copy_mask, wsclean_high2, plot_im_high, move_high2, fits_to_image_high, casa_to_bbs_high, make_sourcedb_high, expand_sourcedb_high, subtract_high, correct_high, regroup_map, wsclean_low1, mask_low, wsclean_low2, plot_im_low, move_low2, fits_to_image_low, casa_to_bbs_low, make_sourcedb_low, expand_sourcedb_low, subtract_low, merge, copy_skymodels, createmap_plots, move_plots]

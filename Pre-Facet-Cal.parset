@@ -14,7 +14,6 @@
 #   (E.g. a single workstation or compute cluster with shared filesystem
 #   doesn't work on multiple nodes on CEP-2 or CEP3.)
 
-
 # parameters you will need to adjust.
 # averaging for the calibrator and target data
 ! avg_timestep         = 2   # averaging step needed to average the data to 4 seconds time resolution
@@ -157,3 +156,4 @@ target_pipeline.control.num_proc_per_node        =  {{ num_proc_per_node }}
 target_pipeline.control.num_proc_per_node_limit  =  {{ num_proc_per_node_limit }}
 target_pipeline.control.max_dppp_threads         =  {{ max_dppp_threads }}
 target_pipeline.control.error_tolerance          =  {{ error_tolerance }}
+
