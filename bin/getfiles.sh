@@ -12,11 +12,15 @@ SURLtoTURL()
    sara_SURL_string="srm://srm.grid.sara.nl:8443"
    juelich_TURL_string="gsiftp://dcachepool12.fz-juelich.de:2811"
    juelich_SURL_string="srm://lofar-srm.fz-juelich.de:8443"
-
+   poznan_TURL_string="gsiftp://door02.lofar.psnc.pl:2811"
+   poznan_SURL_string="srm://lta-head.lofar.psnc.pl:8443"
    if [[ $SURL == *sara* ]]; then
       TURL=`echo $SURL | sed -e "s%${sara_SURL_string}%${sara_TURL_string}%g"`
    elif [[ $SURL == *juelich* ]]; then
       TURL=`echo $SURL | sed -e "s%${juelich_SURL_string}%${juelich_TURL_string}%g"`
+  elif [[ $SURL == *psnc* ]]; then
+      TURL=`echo $SURL | sed -e "s%${poznan_SURL_string}%${poznan_TURL_string}%g"`
+      export GLOBUS_TCP_PORT_RANGE=20000,25000
    fi
 
    echo $TURL
