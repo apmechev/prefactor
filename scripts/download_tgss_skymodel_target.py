@@ -109,7 +109,7 @@ def main(ms_input, SkymodelPath, Radius="5.", DoDownload="True"):
     [RATar,DECTar]=grab_coo_MS(input2strlist_nomapfile(ms_input)[0])
         
     # Downloading the skymodel
-    os.system("wget -O "+SkymodelPath+ " \'http://home.strw.leidenuniv.nl/~apmechev/cgi-bin/gsmv2.cgi?coord="+str(RATar)+","+str(DECTar)+"&radius="+Radius+"&unit=deg&deconv=y\' ")
+    os.system("wget -O "+SkymodelPath+ " \'http://tgssadr.strw.leidenuniv.nl/cgi-bin/gsmv3.cgi?coord="+str(RATar)+","+str(DECTar)+"&radius="+Radius+"&unit=deg&deconv=y\' ")
 
     return
             
