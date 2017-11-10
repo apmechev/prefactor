@@ -6,6 +6,23 @@ import glob
 import pyrap.tables as pt
 import lofar.parmdb as pdb
 
+def input2bool(invar):
+    if invar == None:
+        return None
+    if isinstance(invar, bool):
+        return invar
+    elif isinstance(invar, str):
+        if invar.upper() == 'TRUE' or invar == '1':
+            return True
+        elif invar.upper() == 'FALSE' or invar == '0':
+            return False
+        else:
+            raise ValueError('input2bool: Cannot convert string "'+invar+'" to boolean!')
+    elif isinstance(invar, int) or isinstance(invar, float):
+        return bool(invar)
+    else:
+        raise TypeError('input2bool: Unsupported data type:'+str(type(invar)))
+
 ###Reading in the the parameters of target data with PYRAP and putting them into directories for further use###############
 class ReadMs:
     def __init__(self, ms):
@@ -77,10 +94,14 @@ def get_COMMONROTATION_vals(MSinfo, server, prefix, ionexPath):
     path : str
        path where we can find or store the IONEX files
     """
+    if ionexPath[-1] != '/':
+        print "get_COMMONROTATION_vals: ionexPath doesn't end in \"/\", adding that character."
+        ionexPath += '/'
+
     from RMextract import getRM
     rmdict = getRM.getRM(MSinfo.msname,server=server,prefix=prefix,ionexPath=ionexPath,timestep=300.)
     if not rmdict:
-        if not ionex_server:
+        if not server:
             raise ValueError("One or more IONEX files is not found on disk and download is disabled!\n"
                              "(You can run \"bin/download_IONEX.py\" outside the pipeline if needed.)")
         else:
@@ -91,9 +112,10 @@ def get_COMMONROTATION_vals(MSinfo, server, prefix, ionexPath):
 
 ########################################################################
 def main(MSfiles, store_basename='caldata_transfer', store_directory='.', newparmdbext='-instrument_amp_clock_offset', 
-         ionex_server="ftp://ftp.unibe.ch/aiub/CODE/", ionex_prefix='CODG', ionexPath="IONEXdata/"):
+         ionex_server="ftp://ftp.unibe.ch/aiub/CODE/", ionex_prefix='CODG', ionexPath="IONEXdata/", zeroCSclock=False):
 
     mslist_unfiltered = input2strlist_nomapfile(MSfiles)
+    zeroCSclock = input2bool(zeroCSclock)
 
     mslist = []
     for ms in mslist_unfiltered:
@@ -158,10 +180,22 @@ def main(MSfiles, store_basename='caldata_transfer', store_directory='.', newpar
 
     outDB = make_empty_parmdb(newparmDB)
 
+    # check if we have data for all target stations
+    for antenna in msinfo.stations:
+        if antenna not in station_names:
+            if antenna[:2] == 'CS' or antenna[:2] == 'RS':
+                # fail if it is a Dutch station
+                print "Station %s not found in list of calibrator data!"%(antenna)
+                raise ValueError("Station "+antenna+" missing in calibrator data!")
+            else:
+                # just print a warning for international stations
+                print  "No calibratior data for station %s, but international stations will be flagged anyhow."%(antenna)
+    
     # Now do the interpolating
     for antenna_id, antenna in enumerate(station_names):
         if antenna not in msinfo.stations:
-            pass
+            print "Station %s not found in target observation, skipping generation of calibration values."%(antenna)
+            continue
 
         # form median of amplitudes along the time axis, for both polarizations
         amp_cal_00_all = np.median(amps_array[antenna_id,:,:,0],axis=0)
@@ -204,6 +238,8 @@ def main(MSfiles, store_basename='caldata_transfer', store_directory='.', newpar
 
         #now handle the clock-value (no fancy interpolating needed)
         clock_pdb = np.array( np.median(clock_array[:,antenna_id]) ,ndmin=2)
+        if zeroCSclock and antenna[0:1] == 'CS':
+            clock_pdb *= 0.
         ValueHolder = outDB.makeValue(values=clock_pdb,
                                       sfreq=startfreqs[0], efreq=endfreqs[-1],
                                       stime=starttime, etime=endtime, asStartEnd=True)
