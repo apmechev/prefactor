@@ -112,7 +112,7 @@ def get_COMMONROTATION_vals(MSinfo, server, prefix, ionexPath):
 
 ########################################################################
 def main(MSfiles, store_basename='caldata_transfer', store_directory='.', newparmdbext='-instrument_amp_clock_offset', 
-         ionex_server="ftp://ftp.unibe.ch/aiub/CODE/", ionex_prefix='CODG', ionexPath="IONEXdata/", zeroCSclock=False):
+        ionex_server=" ftp://ftp.aiub.unibe.ch/CODE/", ionex_prefix='CODG', ionexPath="IONEXdata/", zeroCSclock=False):
 
     mslist_unfiltered = input2strlist_nomapfile(MSfiles)
     zeroCSclock = input2bool(zeroCSclock)
