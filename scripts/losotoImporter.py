@@ -12,12 +12,14 @@ from lofarpipe.support.data_map import DataProduct
 import numpy as np
 import pyrap.tables as pt
 import lofar.parmdb as pdb
-from losoto.h5parm import h5parm, solWriter
+#from losoto.h5parm import h5parm, solWriter
+from losoto._importer import create_h5parm
+from losoto.h5parm import h5parm
 
 import logging
 
 # mandatory arguments:
-# options: mapfile_in, mapfile-dir, filename 
+# options: mapfile_in, mapfile-dir, filename
 
 
 # this is the code if you use it as a plugin
@@ -51,28 +53,30 @@ def plugin_main(args, **kwargs):
     skydbFile = os.path.join(datamap[0].file,'sky')
     if not os.path.isdir(skydbFile):
         logging.warning('No sky table found. (Direction-dependent parameters will not work.)')
-        skydbFile = None
-        
+        skydbFile = 'None'
+
     #generate list of parmDB-filenames
     parmDBnames = [ MS.file+instrument for MS in datamap ]
 
-    #create and fill the hdf5-file:
-    solset = parmDBs2h5parm(hdf5File, parmDBnames, antennaFile, fieldFile, skydbFile, compression=compression, solsetName=solsetName)
+    ##create and fill the hdf5-file:
+    #solset = parmDBs2h5parm(hdf5File, parmDBnames, antennaFile, fieldFile, skydbFile, compression=compression, solsetName=solsetName)
+    # call the create_h5parm function from losoto (will put a stupid create message in the h5parm file)
+    create_h5parm(parmDBnames, antennaFile, fieldFile, skydbFile, hdf5File, compression, solsetName)
 
-    # Add CREATE entry to history 
-    h5parmDB = h5parm(hdf5File, readonly = False)
-    soltabs = h5parmDB.getSoltabs(solset=solset)
-    for st in soltabs:
-        sw = solWriter(soltabs[st])
-        sw.addHistory('CREATE (by PipelineStep_losotoImporter from %s / %s - %s)' % (os.path.abspath(''), 
-                                   os.path.basename(parmDBnames[0]), os.path.basename(parmDBnames[-1]) ) )
-    h5parmDB.close()
+    ## Add CREATE entry to history
+    #h5parmDB = h5parm(hdf5File, readonly = False)
+    #soltabs = h5parmDB.getSoltabs(solset=solset)
+    #for st in soltabs:
+    #    sw = solWriter(soltabs[st])
+    #    sw.addHistory('CREATE (by PipelineStep_losotoImporter from %s / %s - %s)' % (os.path.abspath(''),
+    #                               os.path.basename(parmDBnames[0]), os.path.basename(parmDBnames[-1]) ) )
+    #h5parmDB.close()
 
     #generate mapfile and wrap up
     mapfileentry = {}
     mapfileentry['host'] = 'localhost'
     mapfileentry['file'] = hdf5File
-    mapfileentry['skip'] = False            
+    mapfileentry['skip'] = False
     outfileid = os.path.join(kwargs['mapfile_dir'], kwargs['filename'])
     outmap = open(outfileid, 'w')
     outmap.write(repr([mapfileentry]))
@@ -101,22 +105,25 @@ def main(msfileslist, hdf5fileName, hdf5_dir='.', instrument='/instrument', sols
     skydbFile = os.path.join(msfiles[0],'sky')
     if not os.path.isdir(skydbFile):
         logging.warning('No sky table found. (Direction-dependent parameters will not work.)')
-        skydbFile = None
-        
+        skydbFile = 'None'
+
     #generate list of parmDB-filenames
     parmDBnames = [ MS+instrument for MS in msfiles ]
 
-    #create and fill the hdf5-file:
-    solset = parmDBs2h5parm(hdf5File, parmDBnames, antennaFile, fieldFile, skydbFile, compression=compression, solsetName=solsetName)
+    ##create and fill the hdf5-file:
+    #solset = parmDBs2h5parm(hdf5File, parmDBnames, antennaFile, fieldFile, skydbFile, compression=compression, solsetName=solsetName)
+    # call the create_h5parm function from losoto (will put a stupid create message in the h5parm file)
+    create_h5parm(parmDBnames, antennaFile, fieldFile, skydbFile, hdf5File, compression, solsetName)
 
-    # Add CREATE entry to history 
-    h5parmDB = h5parm(hdf5File, readonly = False)
-    soltabs = h5parmDB.getSoltabs(solset=solset)
-    for st in soltabs:
-        sw = solWriter(soltabs[st])
-        sw.addHistory('CREATE (by losotoImporter from %s / %s - %s)' % (os.path.abspath(''), 
-                                   os.path.basename(parmDBnames[0]), os.path.basename(parmDBnames[-1]) ) )
-    h5parmDB.close()
+
+    ## Add CREATE entry to history
+    #h5parmDB = h5parm(hdf5File, readonly = False)
+    #soltabs = h5parmDB.getSoltabs(solset=solset)
+    #for st in soltabs:
+    #    sw = solWriter(soltabs[st])
+    #    sw.addHistory('CREATE (by losotoImporter from %s / %s - %s)' % (os.path.abspath(''),
+    #                               os.path.basename(parmDBnames[0]), os.path.basename(parmDBnames[-1]) ) )
+    #h5parmDB.close()
 
     result = {}
     result['h5parm'] = hdf5File
@@ -200,10 +207,10 @@ def parmDBs2h5parm(h5parmName,parmDBs,antennaFile,fieldFile,skydbFile=None,compr
                 freqs |= set(data[solEntry]['freqs'])
                 times |= set(data[solEntry]['times'])
             #close the parmDB
-            instrumentdb = 0 
+            instrumentdb = 0
 
-        pols = np.sort(list(pols)); dirs = np.sort(list(dirs)); 
-        ants = np.sort(list(ants)); freqs = np.sort(list(freqs)); 
+        pols = np.sort(list(pols)); dirs = np.sort(list(dirs));
+        ants = np.sort(list(ants)); freqs = np.sort(list(freqs));
         times = np.sort(list(times))
         shape = [i for i in (len(pols), len(dirs), len(ants), len(freqs), len(times)) if i != 0]
         vals = np.empty(shape)
@@ -247,7 +254,7 @@ def parmDBs2h5parm(h5parmName,parmDBs,antennaFile,fieldFile,skydbFile=None,compr
                 vals[tuple(coords)][np.ix_(freqCoord,timeCoord)] = val.T
                 weights[tuple(coords)][np.ix_(freqCoord,timeCoord)] = 1
             #close the parmDB
-            instrumentdb = 0             
+            instrumentdb = 0
 
         vals = np.nan_to_num(vals) # replace nans with 0 (flagged later)
 
@@ -299,7 +306,7 @@ def parmDBs2h5parm(h5parmName,parmDBs,antennaFile,fieldFile,skydbFile=None,compr
     antennaNames = antennaTable.getcol('NAME')
     antennaPositions = antennaTable.getcol('POSITION')
     antennaTable.close()
-    antennaTable = solset.obj._f_get_child('antenna')
+    antennaTable = solset._f_get_child('antenna')
     antennaTable.append(zip(*(antennaNames,antennaPositions)))
 
     fieldTable = pt.table(fieldFile, ack=False)
@@ -307,13 +314,13 @@ def parmDBs2h5parm(h5parmName,parmDBs,antennaFile,fieldFile,skydbFile=None,compr
     pointing = phaseDir[0, 0, :]
     fieldTable.close()
 
-    sourceTable = solset.obj._f_get_child('source')
+    sourceTable = solset._f_get_child('source')
     # add the field centre, that is also the direction for Gain and CommonRotationAngle
     sourceTable.append([('pointing',pointing)])
 
     dirs = []
     for tab in solset._v_children:
-        c = solset.obj._f_getChild(tab)
+        c = solset._f_get_child(tab)
         if c._v_name != 'antenna' and c._v_name != 'source':
             dirs.extend(list(set(c.dir)))
     # remove duplicates
@@ -474,7 +481,7 @@ if __name__=='__main__':
 
     opt = optparse.OptionParser(usage='%prog [-v] <H5parm> <MSPattern> \n'
                                 '  <H5parm>    = (Path)name of the (new) H5parm file to be written.\n'
-                                '  <MSPattern> = Search pattern for the measurement sets with instrument tables.\n'
+                                '  <MSPattern> = One or more search patterns for the measurement sets with instrument tables.\n'
                                 '                (e.g. \"/data/scratch/MyObs/calibrator/L*.dppp\")\n'
                                 '                Probably needs to be put in quotes when called from a shell!')
     opt.add_option('-i', '--instrument', dest="Instrument", type='string', default='/instrument',
@@ -489,14 +496,16 @@ if __name__=='__main__':
     (options, args) = opt.parse_args()
 
     # Check options
-    if len(args) != 2:
+    if len(args) < 2:
         opt.print_help()
         sys.exit()
 
     # first argument: H5parm file name
     hdf5File = args[0]
     # second argument: pattern for measurement-sets
-    inMSs = glob.glob(args[1])
+    inMSs = []
+    for entry in args[1:]:
+        inMSs.extend(glob.glob(entry))
 
     # options with default values
     instrument = options.Instrument
@@ -515,20 +524,22 @@ if __name__=='__main__':
     skydbFile = os.path.join(inMSs[0],'sky')
     if not os.path.isdir(skydbFile):
         logging.warning('No sky table found. (Direction-dependent parameters will not work.)')
-        skydbFile = None
-        
+        skydbFile = 'None'
+
     #generate list of parmDB-filenames
     parmDBnames = [ MS.rstrip('/')+instrument for MS in inMSs ]
 
-    #create and fill the hdf5-file:
-    solset = parmDBs2h5parm(hdf5File, parmDBnames, antennaFile, fieldFile, skydbFile, compression=compression, solsetName=solsetName)
+    ##create and fill the hdf5-file:
+    #solset = parmDBs2h5parm(hdf5File, parmDBnames, antennaFile, fieldFile, skydbFile, compression=compression, solsetName=solsetName)
+    # call the create_h5parm function from losoto (will put a stupid create message in the h5parm file)
+    create_h5parm(parmDBnames, antennaFile, fieldFile, skydbFile, hdf5File, compression, solsetName)
 
-    # Add CREATE entry to history 
-    h5parmDB = h5parm(hdf5File, readonly = False)
-    soltabs = h5parmDB.getSoltabs(solset=solset)
-    for st in soltabs:
-        sw = solWriter(soltabs[st])
-        sw.addHistory('CREATE (by PipelineStep_losotoImporter from %s / %s - %s)' % (os.path.abspath(''), 
-                                   os.path.basename(parmDBnames[0]), os.path.basename(parmDBnames[-1]) ) )
-    h5parmDB.close()
+    ## Add CREATE entry to history
+    #h5parmDB = h5parm(hdf5File, readonly = False)
+    #soltabs = h5parmDB.getSoltabs(solset=solset)
+    #for st in soltabs:
+    #    sw = solWriter(soltabs[st])
+    #    sw.addHistory('CREATE (by PipelineStep_losotoImporter from %s / %s - %s)' % (os.path.abspath(''),
+    #                               os.path.basename(parmDBnames[0]), os.path.basename(parmDBnames[-1]) ) )
+    #h5parmDB.close()
 
