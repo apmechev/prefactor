@@ -299,7 +299,7 @@ def parmDBs2h5parm(h5parmName,parmDBs,antennaFile,fieldFile,skydbFile=None,compr
     antennaNames = antennaTable.getcol('NAME')
     antennaPositions = antennaTable.getcol('POSITION')
     antennaTable.close()
-    antennaTable = solset.obj._f_get_child('antenna')
+    antennaTable = solset._f_get_child('antenna')
     antennaTable.append(zip(*(antennaNames,antennaPositions)))
 
     fieldTable = pt.table(fieldFile, ack=False)
@@ -307,13 +307,13 @@ def parmDBs2h5parm(h5parmName,parmDBs,antennaFile,fieldFile,skydbFile=None,compr
     pointing = phaseDir[0, 0, :]
     fieldTable.close()
 
-    sourceTable = solset.obj._f_get_child('source')
+    sourceTable = solset._f_get_child('source')
     # add the field centre, that is also the direction for Gain and CommonRotationAngle
     sourceTable.append([('pointing',pointing)])
 
     dirs = []
     for tab in solset._v_children:
-        c = solset.obj._f_getChild(tab)
+        c = solset._f_getChild(tab)
         if c._v_name != 'antenna' and c._v_name != 'source':
             dirs.extend(list(set(c.dir)))
     # remove duplicates
