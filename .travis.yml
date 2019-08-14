@@ -31,11 +31,11 @@ before_install:
     
 jobs:
   include:
-    - stage: download_sif
-      python: 3.7
+    - python: '3.5'
+    - python: '2.7'
+    - stage: download_sif 
       script: ./test/scripts/download_sif.sh 
     - stage: test_imports 
-      python: 3.7
       script: ./test/scripts/import_plugins.sh
       script: ./test/scripts/import_scripts.sh
 
