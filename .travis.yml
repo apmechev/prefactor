@@ -37,6 +37,5 @@ jobs:
       python: "2.7"
       python: "3.5"
       python: "3.7" 
-      script: ./test/scripts/import_plugins.sh
-      script: ./test/scripts/import_scripts.sh
+      script: ./test/scripts/import_plugins.sh &&  ./test/scripts/import_scripts.sh
 
