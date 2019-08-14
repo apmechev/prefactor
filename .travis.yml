@@ -21,19 +21,21 @@ matrix:
           dist: xenial
           python: 3.7 
 
-    before_install:
-       - echo "Installing Singularity"
-       - sudo wget -O - http://neuro.debian.net/lists/xenial.us-ca.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
-       - wget -q -O - "https://keyserver.escomposlinux.org/pks/lookup?op=get&search=0xA5D32F012649A5A9" |tail -67| head -65 | sudo apt-key add -
-       - sudo apt-get update
-       - sudo apt-get install -y singularity-container
-       - singularity --version
+before_install:
+   - echo "Installing Singularity"
+   - sudo wget -O - http://neuro.debian.net/lists/xenial.us-ca.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
+   - wget -q -O - "https://keyserver.escomposlinux.org/pks/lookup?op=get&search=0xA5D32F012649A5A9" |tail -67| head -65 | sudo apt-key add -
+   - sudo apt-get update
+   - sudo apt-get install -y singularity-container
+   - singularity --version
     
-    jobs:
-      include:
-        - stage: download_sif
-          script: ./test/scripts/download_sif.sh 
-        - stage: test_imports
-          script: ./test/scripts/import_plugins.sh
-          script: ./test/scripts/import_scripts.sh
-    
+jobs:
+  include:
+    - stage: download_sif
+      python: 3.7
+      script: ./test/scripts/download_sif.sh 
+    - stage: test_imports 
+      python: 3.7
+      script: ./test/scripts/import_plugins.sh
+      script: ./test/scripts/import_scripts.sh
+
