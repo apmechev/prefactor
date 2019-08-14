@@ -28,17 +28,17 @@ before_install:
    - sudo apt-get update
    - sudo apt-get install -y singularity-container
    - singularity --version
+
+after_install:
+    - ./test/scripts/download_sif.sh
+
     
 jobs:
   include:
-    - stage: download_sif 
-      python: "2.7"
-      script: ./test/scripts/download_sif.sh 
     - stage: test_imports 
       python: "2.7"
       python: "3.5"
-      python: "3.7"
-      script: ./test/scripts/download_sif.sh 
+      python: "3.7" 
       script: ./test/scripts/import_plugins.sh
       script: ./test/scripts/import_scripts.sh
 
