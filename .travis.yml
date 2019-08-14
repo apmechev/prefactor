@@ -28,9 +28,7 @@ before_install:
    - sudo apt-get update
    - sudo apt-get install -y singularity-container
    - singularity --version
-
-after_install:
-    - ./test/scripts/download_sif.sh
+   - ./test/scripts/download_sif.sh
 
     
 jobs:
